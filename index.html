@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <title>FreightWise Programming Test</title>
+
+    <script>
+      "use strict";
+
+      /**
+       * Software Developer test.
+       *
+       * Doing research and making API calls are an important part of what we do at FreightWise.  This test will
+       * demonstrate your abilities to:
+       *
+       * - Make an API call
+       * - Research an API
+       * - Do basic DOM manipulation
+       * - Parse data
+       * - Handle errors
+       * - Be creative
+       *
+       * Feel free to ask any questions you may have.  Use a lot of comments, and explain why you are doing things.
+       * Don't spend more than 1-2 hours on it - we aren't expecting a finished product, but it should work and look
+       * nice.  Feel free to use any third party libraries, and if you do so, explain why you used them instead of
+       * built in browser APIs.
+       *
+       * Instructions:
+       * - Use the axios (https://github.com/axios/axios) request library to make an API call to the OpenWeatherMap
+       *   API for Current Weather Data using this API key:  25e989bd41e3e24ce13173d8126e0fd6
+       *   We've already imported this library to get you started.
+       * - Use either async/await or Promises.
+       * - Get the weather for Brentwood, TN, and write it to the DOM using the `setResults` method below.  Be
+       *   creative and make it look nice.
+       * - Handle errors and use the `setError` method below to display the error.  Also make it look nice.
+       * - If you find any mistakes in the test, fix them, and leave a comment about what you fixed and why.
+       * - Make sure your code is readable and maintainable.
+       * - Use plenty of descriptive comments.
+       * - Make sure your code runs in the latest version of Google Chrome and Firefox (ES6 is allowed).
+       * - Make your code live (GitHub with GitHub pages works nice).
+       * - Send a link to your finished test to dev-team-jobs@freightwisellc.com.
+       *
+       * Feel free to add your own twist to it (completely optional).  Here are a few ideas:
+       * - Sign up for NewsAPI.org and get the Top Headlines and show them along with the weather.
+       * - Use the browser location API to get the user's current location, and show that location's weather.
+       * - Show a satellite map of the weather in Brentwood.
+       * - Request a user's phone number and send them an SMS with the weather.
+       */
+      class Test {
+        constructor() {
+          this.testResults = document.getElementsByClassName("test-results");
+          // API key for OpenWeatherMap API
+          this.appId = "c880a8f2205b54bc1522a73364cd1610";
+        }
+
+        /**
+         * Gets the weather report from OpenWeatherMap API
+         * @param {String} buttonType the button type could be nashville, current location or auto suggestion
+         */
+        async run(buttonType = "nashville") {
+          console.log(new Date().toISOString(), "[Test]", "Running the test");
+
+          // Gets Latitude and longitude from the location
+          const { lat, lon } = await this.getLatLong(buttonType);
+
+          // OpenWeatherMap API for fetching weather details
+          const openWeatherApi = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${this.appId}`;
+          const weatherData = await this.fetchData(openWeatherApi);
+
+          // Formatting HTML to show weather report
+          const weatherResult = this.getWeatherHtml(weatherData);
+          this.setResults(weatherResult);
+        }
+
+        /**
+         * Set error message
+         *
+         * @param {String} message error message
+         */
+        setError(message) {
+          const errorHtml = `<div class="err-msg">${message}</div>`;
+
+          this.testResults[0].innerHTML = (errorHtml || "").toString();
+        }
+
+        /**
+         * Set Weather data into html
+         *
+         * @param {String} results weather data html
+         */
+        setResults(results) {
+          // changed testResults variable to array
+          this.testResults[0].innerHTML = (results || "").toString();
+        }
+
+        /**
+         * Gets Latitude and longitude from the location
+         *
+         * @param {String} buttonType the button type could be nashville, current location or auto suggestion
+         * @return {lat, lon} latitude and longitude of the location
+         */
+        async getLatLong(buttonType) {
+          let lat = null;
+          let lon = null;
+          // Checking if Current location button is clicked and location is allowed.
+          if (buttonType === "current-location" && isLocationOn) {
+            // assigning current latitude and longitude
+            lat = myLat;
+            lon = myLon;
+          }
+          // Checking if Current location button is clicked and location is blocked.
+          else if (buttonType === "current-location" && !isLocationOn) {
+            this.setError("Please reaload and allow location");
+            return;
+          }
+          // if auto suggestion button is clicked
+          else if (buttonType === "auto-suggestion") {
+            lat = latInput;
+            lon = lonInput;
+          } else {
+            // if Nashiville button is clicked then wil get the cordinates of Brentwood, TN location.
+            const cityName = "Brentwood";
+            const stateCode = "TN";
+            const countryCode = "US";
+            //GeoLocation API to get cordinates
+            const cordinatesApi = `http://api.openweathermap.org/geo/1.0/direct?q=${cityName},${stateCode},${countryCode}&appid=${this.appId}`;
+            // GET request to pull data from OpenWeatherMap API
+            const cordinates = await this.fetchData(cordinatesApi);
+
+            if (cordinates) {
+              // Cordinates of Brentwood, TN location
+              lat = cordinates[0].lat;
+              lon = cordinates[0].lon;
+            }
+          }
+
+          return { lat, lon };
+        }
+
+        /**
+         * Get weather data formatted in html
+         *
+         * @param {Object} weatherData weather data from OpenWeatherMap API
+         * @return {String} formatted html
+         */
+        getWeatherHtml(weatherData) {
+          // HTML to show Location name
+          const locationHtml = `<div>
+            <h2>${weatherData.name}, ${weatherData.sys.country}</h2>
+          </div>`;
+
+          // To show weather temperature
+          const tempHtml = `<div class="main-temp">
+            <image class="temp-image" src="https://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png"/>
+            <span class="temp-heading">${weatherData.main.temp}°C</span>
+          </div>`;
+
+          // To show weather description
+          const desHtml = `<div>
+                Feels like ${weatherData.main.feels_like}°C. ${weatherData.weather[0].description}
+            </div>`;
+
+          // To show other weather data like Max, Min, Humidity, Visibility, Pressure.
+          const otherData = `<ul class="other-data">
+                <li><strong>Max: </strong>${weatherData.main.temp_max}°C</li>
+                <li><strong>Min: </strong>${weatherData.main.temp_min}°C</li>
+                <li><strong>Humidity: </strong>${
+                  weatherData.main.humidity
+                }%</li>
+                <li><strong>Visibility: </strong>${(
+                  weatherData.visibility / 1000
+                ).toFixed(1)}km</li>
+                <li><strong>Pressure: </strong>${
+                  weatherData.main.pressure
+                }hPa</li>
+            </ul>`;
+
+          // Combining all the HTML data into one div
+          const weatherHtml = `<div class="weather-card">
+                ${locationHtml}
+                ${tempHtml}
+                ${desHtml}
+                ${otherData}
+            </div>`;
+
+          return weatherHtml;
+        }
+
+        /**
+         * To fetch the data from OpenWeatherMap API
+         *
+         * @param {String} url OpenWeatherMap API endpoint
+         * @returns {Array} data from OpenWeatherMap API
+         */
+        async fetchData(url) {
+          try {
+            // GET axios request
+            const response = await axios.get(url);
+            return response.data;
+          } catch (error) {
+            this.setError(error.response.data.message);
+            return false;
+          }
+        }
+      }
+    </script>
+
+    <style>
+      .button-container {
+        text-align: center;
+        display: flex;
+        width: 800px;
+        margin: 0 auto;
+      }
+
+      .button-container button {
+        margin: 5px;
+        padding: 10px 18px;
+        color: white;
+        background-color: #008000;
+        border: none;
+        border-radius: 3px;
+        transition: all 200ms ease-in-out;
+        font-size: 14px;
+      }
+
+      .button-container button:hover {
+        background-color: #00a000;
+      }
+
+      .button-container button:active {
+        background-color: #006000;
+      }
+
+      .main-temp {
+        display: inline-block;
+      }
+
+      span.temp-heading {
+        font-size: 36px;
+        font-weight: 100;
+        margin-right: 8pt;
+        vertical-align: middle;
+      }
+
+      img.temp-image {
+        vertical-align: middle;
+      }
+
+      ul.other-data {
+        list-style: none;
+        border-left: 1px solid #eb6e4b;
+      }
+
+      .weather-card {
+        width: 300px;
+        margin: 0 auto;
+        font-family: monospace;
+      }
+
+      button.my-weather {
+        background-color: darkblue;
+        display: block;
+        /* margin: 10px aut/o; */
+      }
+
+      button.my-weather:hover {
+        background-color: blue;
+      }
+
+      .err-msg {
+        margin: 100px auto;
+        border: 1px solid #c52d2d;
+        padding: 5px;
+        border-radius: 5px;
+        background-color: #e78f8f;
+      }
+
+      .test-results {
+        display: flex;
+      }
+
+      ul#suggestion-box {
+        display: none;
+        top: 50px;
+        left: 0px;
+        position: absolute;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+        width: 100%;
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      .input-box {
+        position: relative;
+      }
+      #suggestion-box li {
+        padding: 5px;
+        border-bottom: 1px solid #bbb;
+        cursor: pointer;
+      }
+      input#auto-suggestion {
+        height: 30px;
+        font-size: 15px;
+      }
+      #suggestion-box li:hover {
+        background-color: #f2f2f2;
+      }
+    </style>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  </head>
+  <body onLoad="initGeolocation();">
+    <div class="button-container">
+      <button type="button" onclick="test.run()">
+        Get the Nashville Weather
+      </button>
+      <button
+        type="button"
+        onclick="test.run('current-location')"
+        class="my-weather"
+      >
+        Get Weather of your location
+      </button>
+      <div class="input-box">
+        <input id="auto-suggestion" type="text" onkeyup="autoSuggestion()" />
+        <ul id="suggestion-box"></ul>
+        <button type="button" onclick="test.run('auto-suggestion')">
+          Get Weather
+        </button>
+      </div>
+    </div>
+    <div class="test-results"></div>
+
+    <script>
+      let myLat = null;
+      let myLon = null;
+      let isLocationOn = false;
+      let latInput = null;
+      let lonInput = null;
+
+      /**
+       * init geo location when browser loads
+       */
+      function initGeolocation() {
+        if (navigator.geolocation) {
+          // Call getCurrentPosition with success and failure callbacks
+          navigator.geolocation.getCurrentPosition(this.success, this.fail);
+        } else {
+          alert("Sorry, your browser does not support geolocation services.");
+        }
+      }
+
+      /**
+       * Runs on browser's location is allowed
+       * @param {GeolocationPosition} position  the current cordinates
+       */
+      function success(position) {
+        // Getting current cordinates
+        myLat = position.coords.latitude;
+        myLon = position.coords.longitude;
+        // setting location to true
+        isLocationOn = true;
+      }
+
+      /**
+       * Runs on browser's location is blocked
+       */
+      function fail() {
+        // Could not obtain location so setting it to false
+        isLocationOn = false;
+      }
+    </script>
+    <script>
+      "use strict";
+
+      /**
+       * Creates a button for kicking off the test and adds it to the DOM.
+       *
+       * @param {HTMLElement} context  the parent element to add the button to
+       * @param {Test}        test     the test to be executed
+       * @returns {HTMLElement} the button added to the test
+       */
+      function addButtonForTest(context, test) {
+        let testButton = document.createElement("button");
+
+        testButton.type = "button";
+        testButton.innerText = "Get the Nashville Weather";
+        testButton.onclick = () => test.run();
+
+        context.appendChild(testButton);
+      }
+
+      /**
+       * Creates a auto suggestion box.
+       *
+       */
+      async function autoSuggestion() {
+        var ul = document.getElementById("suggestion-box");
+        ul.innerHTML = "";
+        const input = document.getElementById("auto-suggestion");
+        if (input.value.length > 2) {
+          ul.style.display = "block";
+          const response = await axios.get(
+            "https://geocode.maps.co/search?type=administrative&q=" +
+              input.value
+          );
+          const suggestions = response.data.filter(
+            (item) => item.type === "administrative"
+          );
+          suggestions.forEach((value) => {
+            const li = document.createElement("li");
+            li.onclick = (e) => {
+              input.value = e.target.innerText;
+              ul.style.display = "none";
+              latInput = e.target.getAttribute("data-lat");
+              lonInput = e.target.getAttribute("data-lon");
+            };
+            li.setAttribute("data-lat", value.lat);
+            li.setAttribute("data-lon", value.lon);
+            li.appendChild(document.createTextNode(value.display_name));
+            ul.appendChild(li);
+          });
+        }
+      }
+
+      // Create the Test and add a button to the UI for running the test
+      const test = new Test();
+    </script>
+  </body>
+</html>
